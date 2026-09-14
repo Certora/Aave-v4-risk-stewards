@@ -45,7 +45,7 @@ jobs:
           comment-fail-only: false
           solc-remove-version-prefix: "0."
           job-name: "Certora Prover Run"
-          certora-key: ${{ secrets.CERTORA_KEY }}
+          certora-key: ${{ secrets.CERTORAKEY }}
           install-java: true
           auto-rerun-timeouts: true
         env:
