@@ -19,7 +19,7 @@ and leave the protocol calls unresolved.
 Effect and immutability properties need to observe real protocol storage, so
 `Immutability.conf` and `ProtocolEffects.conf` link a scene built from the real
 aave-v4 `Hub`, `Spoke`, `HubConfigurator`, `SpokeConfigurator` and
-`AssetInterestRateStrategy`. The scene contracts in [`harness/Scene.sol`](./harness/Scene.sol) 
+`AssetInterestRateStrategy`. The scene contracts in [`harness/Scene.sol`](./harness/Scene.sol)
 are pass-through wrappers: every function body on the write path is the real aave-v4 code.
 They exist because the aave-v4 sources import each other as `src/...`, which only
 resolves for transitively imported files. Both configurations therefore execute
@@ -46,13 +46,13 @@ store/load pair, so `OracleProperties.spec` mirrors it in a ghost keyed by
 
 Config: [`confs/AccessControl.conf`](./confs/AccessControl.conf). Spec: [`specs/AccessControl.spec`](./specs/AccessControl.spec).
 
-| Rule                                | What it checks                                                                        |
-| ----------------------------------- | ------------------------------------------------------------------------------------- |
-| `councilOnly`                       | Every mutating entrypoint that is not owner-gated reverts for a sender other than `RISK_COUNCIL`. |
-| `ownerOnly`                         | `setConfig` and `setAddressRestricted` revert for a non-owner.                        |
-| `ownerCannotCallCouncilEntrypoints` | The owner passes a council entrypoint only when the owner is also the council.        |
-| `restricted*Reverts`                | Naming an owner-restricted hub, spoke, underlying or oracle reverts. Nine rules, one per council entrypoint. |
-| `setAddressRestrictedTouchesOnlyItsKey` | The setter writes its own key and leaves every other address alone.               |
+| Rule                                    | What it checks                                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `councilOnly`                           | Every mutating entrypoint that is not owner-gated reverts for a sender other than `RISK_COUNCIL`.            |
+| `ownerOnly`                             | `setConfig` and `setAddressRestricted` revert for a non-owner.                                               |
+| `ownerCannotCallCouncilEntrypoints`     | The owner passes a council entrypoint only when the owner is also the council.                               |
+| `restricted*Reverts`                    | Naming an owner-restricted hub, spoke, underlying or oracle reverts. Nine rules, one per council entrypoint. |
+| `setAddressRestrictedTouchesOnlyItsKey` | The setter writes its own key and leaves every other address alone.                                          |
 
 `councilOnly` is parametric over every mutating method, so a new entrypoint that
 forgets its modifier fails the rule without anyone editing the spec.
@@ -61,55 +61,55 @@ forgets its modifier fails the rule without anyone editing the spec.
 
 Config: [`confs/configIntegrity.conf`](./confs/configIntegrity.conf). Spec: [`specs/configIntegrity.spec`](./specs/configIntegrity.spec).
 
-| Rule                               | What it checks                                                             |
-| ---------------------------------- | -------------------------------------------------------------------------- |
-| `setConfigWritesArg`               | A successful `setConfig` stores exactly its argument, compared field by field. |
-| `configIntactExceptSetConfig`      | No other method changes `_config`.                                         |
-| `restrictionMapIntactExceptSetter` | No other method changes the restriction map.                               |
+| Rule                               | What it checks                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `setConfigWritesArg`               | A successful `setConfig` stores exactly its argument, compared field by field.                  |
+| `configIntactExceptSetConfig`      | No other method changes `_config`.                                                              |
+| `restrictionMapIntactExceptSetter` | No other method changes the restriction map.                                                    |
 | `setConfigEnforcesPolarity`        | A config whose per-field relative/absolute polarity is wrong is rejected, all seventeen fields. |
 
 ## Revert conditions
 
 Config: [`confs/RevertConditions.conf`](./confs/RevertConditions.conf). Spec: [`specs/RevertConditions.spec`](./specs/RevertConditions.spec).
 
-| Rule                        | What it checks                                                                    |
-| --------------------------- | --------------------------------------------------------------------------------- |
+| Rule                                                       | What it checks                                                                                                                                           |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `*SuccessImpliesInScope`, `dynUpdateSuccessImpliesFeeKept` | A successful update carried the `KEEP_CURRENT` sentinel in every out-of-scope field. Four rules over the hub-IR, caps, reserve and dynamic-update paths. |
-| `*SuccessImpliesAllMatched` | Every element's configurator equals the one pinned in the config. Six rules, one per engine path. |
-| `*ZeroReverts`              | A governed field may be left alone through the sentinel but never actively set to zero. Six rules. |
-| `lstSnapshotMustBeBackwardLooking` | A snapshot ratio above the adapter's live ratio is rejected.               |
-| `lstCappedResultReverts`    | An update that would leave the adapter capped is rejected.                        |
-| `stableRejectsKeepCurrent`  | The stable path has no sentinel, so the sentinel value itself is rejected.        |
-| `pendleRejectsKeepCurrent`  | Same for the Pendle discount rate.                                                |
+| `*SuccessImpliesAllMatched`                                | Every element's configurator equals the one pinned in the config. Six rules, one per engine path.                                                        |
+| `*ZeroReverts`                                             | A governed field may be left alone through the sentinel but never actively set to zero. Six rules.                                                       |
+| `lstSnapshotMustBeBackwardLooking`                         | A snapshot ratio above the adapter's live ratio is rejected.                                                                                             |
+| `lstCappedResultReverts`                                   | An update that would leave the adapter capped is rejected.                                                                                               |
+| `stableRejectsKeepCurrent`                                 | The stable path has no sentinel, so the sentinel value itself is rejected.                                                                               |
+| `pendleRejectsKeepCurrent`                                 | Same for the Pendle discount rate.                                                                                                                       |
 
 ## Debounce stamping and enforcement
 
 Config: [`confs/DebounceStamping.conf`](./confs/DebounceStamping.conf). Spec: [`specs/transitions/DebounceStamping.spec`](./specs/transitions/DebounceStamping.spec).
 
-| Rule                            | What it checks                                                                  |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `*DebounceStamping`             | A non-sentinel write stamps that field's debounce to the transaction time, a sentinel sibling keeps its old stamp, and every other key is untouched. Five rules, one per debounce mapping. |
-| `dynamicAdditionStampsBoth`     | An addition consumes both shared dynamic debounce windows.                       |
-| `*DebounceEnforced`             | A successful non-sentinel write means the configured `minDelay` had elapsed since that field's own previous stamp. Nine rules, covering the six protocol paths and the three oracle families. |
-| `debouncesIntactExceptUpdaters` | No non-updater method moves any of the six debounce mappings.                    |
-| `*DebounceIntactExceptWriters` | Each mapping is preserved by every method outside its designated writer set, including unrelated council updaters. Six rules; dynamic update/addition share one mapping, and the three oracle families share another. |
+| Rule                            | What it checks                                                                                                                                                                                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*DebounceStamping`             | A non-sentinel write stamps that field's debounce to the transaction time, a sentinel sibling keeps its old stamp, and every other key is untouched. Five rules, one per debounce mapping.                            |
+| `dynamicAdditionStampsBoth`     | An addition consumes both shared dynamic debounce windows.                                                                                                                                                            |
+| `*DebounceEnforced`             | A successful non-sentinel write means the configured `minDelay` had elapsed since that field's own previous stamp. Nine rules, covering the six protocol paths and the three oracle families.                         |
+| `debouncesIntactExceptUpdaters` | No non-updater method moves any of the six debounce mappings.                                                                                                                                                         |
+| `*DebounceIntactExceptWriters`  | Each mapping is preserved by every method outside its designated writer set, including unrelated council updaters. Six rules; dynamic update/addition share one mapping, and the three oracle families share another. |
 
 ## Immutability
 
 Config: [`confs/Immutability.conf`](./confs/Immutability.conf). Spec: [`specs/transitions/Immutability.spec`](./specs/transitions/Immutability.spec).
 
-| Rule                            | What it checks                                                            |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| `hubKeepsOutOfScopeFields`      | The IR path leaves `liquidityFee`, `feeReceiver`, `irStrategy` and `reinvestmentController` alone. |
-| `capsKeepsOutOfScopeFields`     | The caps path leaves `riskPremiumThreshold`, `active` and `halted` alone.  |
-| `reserveKeepsPriceSource`       | The reserve path never reaches the oracle's price-source setter.           |
-| `reserveKeepsFlags`             | The reserve path leaves the four reserve flags alone.                      |
-| `dynKeepsLiquidationFee`        | The dynamic-update path never moves `liquidationFee`.                      |
-| `dynAddKeepsEarlierKeys`        | An addition appends, so keys already in use keep their values.             |
-| `irKeepsSentinelFields`         | A sentinel interest-rate field is never written.                           |
-| `addCapDoesNotMoveDrawCap`, `drawCapDoesNotMoveAddCap` | Moving one cap leaves the sibling cap alone.        |
-| `collateralFactorKeepsMaxBonus`, `maxBonusKeepsCollateralFactor` | Same for the two dynamic fields.           |
-| `liqKeepsSentinelFields`        | A sentinel liquidation field is never written.                             |
+| Rule                                                             | What it checks                                                                                     |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `hubKeepsOutOfScopeFields`                                       | The IR path leaves `liquidityFee`, `feeReceiver`, `irStrategy` and `reinvestmentController` alone. |
+| `capsKeepsOutOfScopeFields`                                      | The caps path leaves `riskPremiumThreshold`, `active` and `halted` alone.                          |
+| `reserveKeepsPriceSource`                                        | The reserve path never reaches the oracle's price-source setter.                                   |
+| `reserveKeepsFlags`                                              | The reserve path leaves the four reserve flags alone.                                              |
+| `dynKeepsLiquidationFee`                                         | The dynamic-update path never moves `liquidationFee`.                                              |
+| `dynAddKeepsEarlierKeys`                                         | An addition appends, so keys already in use keep their values.                                     |
+| `irKeepsSentinelFields`                                          | A sentinel interest-rate field is never written.                                                   |
+| `addCapDoesNotMoveDrawCap`, `drawCapDoesNotMoveAddCap`           | Moving one cap leaves the sibling cap alone.                                                       |
+| `collateralFactorKeepsMaxBonus`, `maxBonusKeepsCollateralFactor` | Same for the two dynamic fields.                                                                   |
+| `liqKeepsSentinelFields`                                         | A sentinel liquidation field is never written.                                                     |
 
 `reserveKeepsPriceSource` works differently from its siblings: the price source
 lives in the out-of-scene oracle, so the setter is summarized with a ghost flag
@@ -119,30 +119,30 @@ and the rule proves the flag is never raised.
 
 Config: [`confs/ProtocolEffects.conf`](./confs/ProtocolEffects.conf). Spec: [`specs/transitions/ProtocolEffects.spec`](./specs/transitions/ProtocolEffects.spec).
 
-| Rule                        | What it checks                                                                |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `*Magnitude`                | The move from the pre-transaction protocol value is at most the configured `maxPercentChange`, relative or absolute according to the field's polarity. Fourteen rules over the caps, collateral risk, dynamic, liquidation and interest-rate fields. |
-| `*Fidelity`                 | A successful non-sentinel submission wrote that exact value into real Hub, Spoke or strategy storage. Fourteen rules, matching the magnitude set. |
-| `dynAddLiquidationFeeFrozen`| An addition that changes `liquidationFee` reverts.                            |
-| `dynAddRequiresExistingConfig` | An addition must extend an existing dynamic config, never bootstrap one.   |
+| Rule                           | What it checks                                                                                                                                                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `*Magnitude`                   | The move from the pre-transaction protocol value is at most the configured `maxPercentChange`, relative or absolute according to the field's polarity. Fourteen rules over the caps, collateral risk, dynamic, liquidation and interest-rate fields. |
+| `*Fidelity`                    | A successful non-sentinel submission wrote that exact value into real Hub, Spoke or strategy storage. Fourteen rules, matching the magnitude set.                                                                                                    |
+| `dynAddLiquidationFeeFrozen`   | An addition that changes `liquidationFee` reverts.                                                                                                                                                                                                   |
+| `dynAddRequiresExistingConfig` | An addition must extend an existing dynamic config, never bootstrap one.                                                                                                                                                                             |
 
 ## Oracle properties
 
 Config: [`confs/OracleProperties.conf`](./confs/OracleProperties.conf). Spec: [`specs/OracleProperties.spec`](./specs/OracleProperties.spec).
 
-| Rule                     | What it checks                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------- |
-| `*DebounceStamping`      | A successful LST, stable or Pendle update stamps that oracle and leaves every other oracle untouched. Three rules. |
-| `*Magnitude`             | The value written to an adapter is within `maxPercentChange` of the value read from that same adapter. Three rules. |
+| Rule                | What it checks                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `*DebounceStamping` | A successful LST, stable or Pendle update stamps that oracle and leaves every other oracle untouched. Three rules.  |
+| `*Magnitude`        | The value written to an adapter is within `maxPercentChange` of the value read from that same adapter. Three rules. |
 
 ## Arithmetic
 
 Config: [`confs/PercentMulDownEquivalence.conf`](./confs/PercentMulDownEquivalence.conf). Spec: [`specs/PercentMulDownEquivalence.spec`](./specs/PercentMulDownEquivalence.spec).
 
-| Rule                                | What it checks                                                        |
-| ----------------------------------- | ---------------------------------------------------------------------- |
-| `percentMulDownRevertsOnlyOnOverflow` | The assembly reverts exactly when the intermediate product exceeds 256 bits. |
-| `percentMulDownMatchesCVL`          | Wherever the assembly produces a result, the CVL model produces the same one, which also pins the rounding direction. |
+| Rule                                  | What it checks                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `percentMulDownRevertsOnlyOnOverflow` | The assembly reverts exactly when the intermediate product exceeds 256 bits.                                          |
+| `percentMulDownMatchesCVL`            | Wherever the assembly produces a result, the CVL model produces the same one, which also pins the rounding direction. |
 
 This configuration verifies aave-v4's `PercentageMathWrapper`, not `RiskSteward`.
 It exists to discharge the summary the magnitude rules rely on.
@@ -183,7 +183,7 @@ called from any directory, walks every `.conf` under `certora/confs/` in sorted
 order, and forwards its arguments to each `certoraRun`:
 
 ```sh
-./certora/runAll.sh 
+./certora/runAll.sh
 ```
 
 It lists any config that failed and exits non-zero.

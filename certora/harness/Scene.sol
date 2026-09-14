@@ -21,8 +21,10 @@ import {AssetInterestRateStrategy} from 'aave-v4/hub/AssetInterestRateStrategy.s
 contract HubHarness is HubInstance {}
 
 contract SpokeHarness is SpokeInstance {
-  constructor(address oracle_, uint16 maxUserReservesLimit_)
-    SpokeInstance(oracle_, maxUserReservesLimit_) {}
+  constructor(
+    address oracle_,
+    uint16 maxUserReservesLimit_
+  ) SpokeInstance(oracle_, maxUserReservesLimit_) {}
 
   /// @dev Same slot `Spoke.addDynamicReserveConfig` reads and bumps, and the same one
   /// `RiskSteward._validateAddDynamicReserveConfigs` anchors against. Exposed as a bare

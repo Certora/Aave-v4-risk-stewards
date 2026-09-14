@@ -9,7 +9,7 @@ import {IAaveV4ConfigEngine} from 'aave-v4/config-engine/interfaces/IAaveV4Confi
  * Scene wrapper for the engine-reachability layer (out-of-scope param
  * immutability, post-state half).
  *
- * RiskSteward copies its `calldata` update array into `memory` before handing 
+ * RiskSteward copies its `calldata` update array into `memory` before handing
  * it to the external config-engine library . That calldata->memory->
  * external-library hop breaks Certora's pointer analysis.
  *
